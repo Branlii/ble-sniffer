@@ -53,7 +53,8 @@ Coverage Distance Ranges:
 
 Examples:
   python3 main.py --coverage 1m
-  python3 main.py --coverage 10m
+  python3 main.py --coverage 10m --debug
+  python3 main.py --debug
   python3 main.py
         """
     )
@@ -63,6 +64,12 @@ Examples:
         type=str,
         choices=['1m', '5m', '10m', '20m', '50m'],
         help='Set coverage distance (1m, 5m, 10m, 20m, or 50m)'
+    )
+    
+    parser.add_argument(
+        '--debug',
+        action='store_true',
+        help='Enable debug mode (show all BLE signals separately instead of merging related devices)'
     )
     
     return parser.parse_args()
@@ -78,6 +85,13 @@ async def main():
         print(f"📡 Coverage set to {args.coverage} (RSSI threshold: {settings.RSSI_THRESHOLD} dBm)")
     else:
         print(f"📡 Using default RSSI threshold: {settings.RSSI_THRESHOLD} dBm")
+    
+    # Update debug mode based on parameter
+    if args.debug:
+        settings.DEBUG_MODE = True
+        print("🐛 Debug mode enabled - showing all BLE signals separately")
+    else:
+        print(f"🔍 Debug mode: {'enabled' if settings.DEBUG_MODE else 'disabled'}")
     
     scanner = BLEScanner()
     await scanner.run()

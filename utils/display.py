@@ -3,7 +3,8 @@ Display utilities for BLE sniffer output and device merging logic.
 """
 
 import time
-from config.settings import DEBUG_MODE, WINDOW_SEC, MIN_SAMPLES_PER_DEVICE
+from config import settings
+from config.settings import WINDOW_SEC, MIN_SAMPLES_PER_DEVICE
 from utils.ble_analyzer import get_signal_quality
 
 
@@ -19,7 +20,7 @@ def merge_related_devices(device_manager):
     """
     active_devices = device_manager.get_active_devices()
     
-    if DEBUG_MODE:
+    if settings.DEBUG_MODE:
         return active_devices  # Mode debug: afficher tout séparément
     
     merged = {}
@@ -118,7 +119,7 @@ def display_devices(device_manager):
     c = len(merged_devices)
     total_tracked = device_manager.get_total_tracked_count()
     
-    mode_indicator = " [DEBUG MODE]" if DEBUG_MODE else " [MERGED MODE]"
+    mode_indicator = " [DEBUG MODE]" if settings.DEBUG_MODE else " [MERGED MODE]"
     print(f"\n[{time.strftime('%H:%M:%S')}] Count (fenêtre {WINDOW_SEC}s) = {c}  | total tracked ids = {total_tracked}{mode_indicator}")
     
     if merged_devices:
@@ -128,16 +129,13 @@ def display_devices(device_manager):
             print(f"  • {info['name']} (RSSI: {info['last_rssi']} dBm) {signal_quality}")
             print(f"    └─ Manufacturer: {info['manufacturer']}")
             
-            if DEBUG_MODE:
+            if settings.DEBUG_MODE:
                 _display_debug_info(dev_id, info)
             else:
                 _display_merged_info(dev_id, info)
             print()
     else:
         print("No devices detected in range")
-    
-    if not DEBUG_MODE:
-        print("💡 Set DEBUG_MODE = True in config/settings.py to see all individual BLE signals")
 
 
 def _display_debug_info(dev_id, info):
