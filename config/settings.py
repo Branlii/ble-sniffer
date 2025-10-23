@@ -5,8 +5,17 @@ Configuration settings for the BLE sniffer application.
 # Scanning Configuration
 WINDOW_SEC = 10                     # fenêtre glissante en secondes pour compter "présents"
 PRINT_INTERVAL = 2                  # intervalle d'affichage en secondes
-RSSI_THRESHOLD = -40                # ignorer paquets dont RSSI < seuil (trop faibles / hors zone)
+RSSI_THRESHOLD = -80                # ignorer paquets dont RSSI < seuil (trop faibles / hors zone) - default 10m
 MIN_SAMPLES_PER_DEVICE = 1          # nombre minimum de détections d'un device dans la fenêtre pour le compter
+
+# Coverage Distance Ranges (RSSI thresholds in dBm)
+COVERAGE_RANGES = {
+    '1m': -60,    # Very close range - only detect devices within ~1 meter
+    '5m': -70,    # Close range - detect devices within ~5 meters
+    '10m': -80,   # Medium range - detect devices within ~10 meters
+    '20m': -90,   # Far range - detect devices within ~20 meters
+    '50m': -100,  # Very far range - detect devices within ~50 meters
+}
 
 # Display Configuration
 DEBUG_MODE = False                  # True = afficher tous les signaux BLE séparément, False = fusionner les appareils liés

@@ -27,6 +27,7 @@ Author: BLE Sniffer Team
 
 import asyncio
 import sys
+import argparse
 from pathlib import Path
 
 # Add the project root to Python path for imports
@@ -34,10 +35,50 @@ project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
 from src.ble_scanner import BLEScanner
+from config import settings
+
+
+def parse_arguments():
+    """Parse command-line arguments."""
+    parser = argparse.ArgumentParser(
+        description="BLE Sniffer - Bluetooth Low Energy Device Detection and Counting",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Coverage Distance Ranges:
+  1m   : RSSI threshold -60 dBm (very close range)
+  5m   : RSSI threshold -70 dBm (close range)
+  10m  : RSSI threshold -80 dBm (medium range)
+  20m  : RSSI threshold -90 dBm (far range)
+  50m  : RSSI threshold -100 dBm (very far range)
+
+Examples:
+  python3 main.py --coverage 1m
+  python3 main.py --coverage 10m
+  python3 main.py
+        """
+    )
+    
+    parser.add_argument(
+        '--coverage',
+        type=str,
+        choices=['1m', '5m', '10m', '20m', '50m'],
+        help='Set coverage distance (1m, 5m, 10m, 20m, or 50m)'
+    )
+    
+    return parser.parse_args()
 
 
 async def main():
     """Main entry point for the BLE sniffer application."""
+    args = parse_arguments()
+    
+    # Update RSSI threshold based on coverage parameter
+    if args.coverage:
+        settings.RSSI_THRESHOLD = settings.COVERAGE_RANGES[args.coverage]
+        print(f"📡 Coverage set to {args.coverage} (RSSI threshold: {settings.RSSI_THRESHOLD} dBm)")
+    else:
+        print(f"📡 Using default RSSI threshold: {settings.RSSI_THRESHOLD} dBm")
+    
     scanner = BLEScanner()
     await scanner.run()
 
