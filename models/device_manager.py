@@ -3,6 +3,7 @@ Device manager for tracking BLE device sightings and information.
 """
 
 import time
+from datetime import datetime
 from collections import defaultdict, deque
 from config.settings import WINDOW_SEC, MIN_SAMPLES_PER_DEVICE
 
@@ -16,7 +17,11 @@ class DeviceManager:
         self.device_info = {}  # device_id -> {name, last_seen, manufacturer, etc.}
     
     def now(self):
-        """Get current timestamp."""
+        """Get current timestamp in ISO 8601 format."""
+        return datetime.now().isoformat()
+    
+    def now_epoch(self):
+        """Get current epoch timestamp for internal calculations."""
         return time.time()
     
     def add_sighting(self, device_id, device_info):
@@ -27,17 +32,17 @@ class DeviceManager:
             device_id: Unique device identifier
             device_info: Dictionary containing device information
         """
-        current_time = self.now()
+        current_time_epoch = self.now_epoch()
         
         # Store device information
         self.device_info[device_id] = device_info
         
-        # Add timestamp to sightings
-        self.sightings[device_id].append(current_time)
+        # Add epoch timestamp to sightings for internal calculations
+        self.sightings[device_id].append(current_time_epoch)
     
     def prune_old(self):
         """Remove old sightings outside the time window."""
-        cutoff = self.now() - WINDOW_SEC
+        cutoff = self.now_epoch() - WINDOW_SEC
         to_delete = []
         
         for dev, dq in list(self.sightings.items()):

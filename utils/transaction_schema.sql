@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     session_id INTEGER NOT NULL,
     timestamp TEXT NOT NULL,
     device_id TEXT NOT NULL,
-    data TEXT NOT NULL,
+    data JSON NOT NULL,
     FOREIGN KEY (session_id) REFERENCES session(id) ON DELETE CASCADE
 );
 
@@ -25,5 +25,6 @@ CREATE TABLE IF NOT EXISTS report (
     session_id INTEGER NOT NULL,
     scan_timestamp TEXT NOT NULL,
     device_count INTEGER NOT NULL,
+    merged_device_count INTEGER NOT NULL,
     FOREIGN KEY (session_id) REFERENCES session(id) ON DELETE CASCADE
 );

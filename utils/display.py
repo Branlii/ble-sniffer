@@ -11,6 +11,8 @@ from utils.ble_analyzer import get_signal_quality
 def merge_related_devices(device_manager):
     """
     Fusionner les appareils liés (iPhone + services, AirPods + case).
+    Groups by device NAME to keep different devices separate.
+    "Unknown Device" entries are merged together as background services.
     
     Args:
         device_manager: DeviceManager instance
@@ -24,88 +26,86 @@ def merge_related_devices(device_manager):
         return active_devices  # Mode debug: afficher tout séparément
     
     merged = {}
-    iphone_devices = []
-    airpods_groups = {}
+    device_groups = {}  # Group devices by name
+    unknown_devices = []  # Collect all "Unknown Device" entries
     
     for dev_id, info in active_devices.items():
-        # Identifier les iPhones et services associés
         if info['manufacturer'] == 'Apple':
-            # Check for AirPods (case-insensitive)
             device_name_lower = info['name'].lower()
-            if 'airpod' in device_name_lower or 'beats' in device_name_lower:
-                # Grouper les AirPods par nom
-                airpods_name = info['name']
-                if airpods_name not in airpods_groups:
-                    airpods_groups[airpods_name] = []
-                airpods_groups[airpods_name].append((dev_id, info))
-            elif info['name'] != 'Unknown Device' and 'iPhone' not in info['name']:
-                # iPhone avec nom personnalisé
-                iphone_devices.append((dev_id, info))
-            elif info['name'] == 'Unknown Device':
-                # Service iPhone anonyme
-                iphone_devices.append((dev_id, info))
+            
+            if info['name'] == 'Unknown Device':
+                # Collect all unknown devices - we'll merge them later
+                unknown_devices.append((dev_id, info))
+            elif 'airpod' in device_name_lower or 'beats' in device_name_lower:
+                # Grouper les AirPods par nom (e.g., "Airpod à moi")
+                device_name = info['name']
+                if device_name not in device_groups:
+                    device_groups[device_name] = []
+                device_groups[device_name].append((dev_id, info))
             else:
-                # Autre appareil Apple
-                merged[dev_id] = info
+                # Named Apple device (iPhone, iPad, etc.) - group by exact name
+                device_name = info['name']
+                if device_name not in device_groups:
+                    device_groups[device_name] = []
+                device_groups[device_name].append((dev_id, info))
         else:
-            # Appareil non-Apple
+            # Appareil non-Apple - add directly without merging
             merged[dev_id] = info
     
-    # Fusionner les appareils iPhone
-    if iphone_devices:
-        main_iphone = None
-        services_count = 0
+    # Merge all "Unknown Device" entries into a single group
+    # These are background services from various Apple devices
+    if unknown_devices:
+        # Use the first one as the main entry
+        main_dev_id, main_info = unknown_devices[0]
         current_best_rssi = -100
         
-        for dev_id, info in iphone_devices:
-            if info['name'] != 'Unknown Device':
-                main_iphone = (dev_id, info)
-            services_count += 1
+        # Find best RSSI among all unknown devices
+        for dev_id, info in unknown_devices:
             current_rssi = info['last_rssi']
             if current_rssi > current_best_rssi:
                 current_best_rssi = current_rssi
         
-        if main_iphone:
-            dev_id, info = main_iphone
-            merged_info = info.copy()
-            merged_info['services_count'] = services_count
-            merged_info['last_rssi'] = current_best_rssi
-            merged[dev_id] = merged_info
-        else:
-            # Tous sont "Unknown Device", prendre le premier
-            dev_id, info = iphone_devices[0]
-            merged_info = info.copy()
-            merged_info['services_count'] = services_count
-            merged_info['name'] = 'iPhone (services only)'
-            merged_info['last_rssi'] = current_best_rssi
-            merged[dev_id] = merged_info
+        merged_info = main_info.copy()
+        merged_info['services_count'] = len(unknown_devices)
+        merged_info['last_rssi'] = current_best_rssi
+        merged[main_dev_id] = merged_info
     
-    # Fusionner les groupes AirPods
-    for airpods_name, devices in airpods_groups.items():
-        if devices:
-            main_dev_id, main_info = devices[0]
-            current_best_rssi = -100
-            
-            for dev_id, info in devices:
-                current_rssi = info['last_rssi']
-                if current_rssi > current_best_rssi:
-                    current_best_rssi = current_rssi
-            
-            # Identifier les composants
-            if len(devices) == 1:
-                components = ["Case"]
-            elif len(devices) == 2:
-                components = ["Case", "1 earbud"]
-            elif len(devices) == 3:
-                components = ["Case", "Left earbud", "Right earbud"]
-            else:
-                components = [f"{len(devices)} components"]
-            
-            merged_info = main_info.copy()
-            merged_info['components'] = components
-            merged_info['components_count'] = len(devices)
+    # Process each named device group
+    for device_name, devices in device_groups.items():
+        if not devices:
+            continue
+        
+        # For named devices, we expect one main device
+        # All others are services/components
+        current_best_rssi = -100
+        main_device = devices[0] if devices else None
+        
+        # Find best RSSI
+        for dev_id, info in devices:
+            current_rssi = info['last_rssi']
+            if current_rssi > current_best_rssi:
+                current_best_rssi = current_rssi
+        
+        if main_device:
+            dev_id, info = main_device
+            merged_info = info.copy()
+            merged_info['services_count'] = len(devices)
             merged_info['last_rssi'] = current_best_rssi
-            merged[main_dev_id] = merged_info
+            
+            # Check if this is AirPods to show components
+            if 'airpod' in device_name.lower() or 'beats' in device_name.lower():
+                num_components = len(devices)
+                if num_components == 1:
+                    merged_info['components'] = ["Case"]
+                elif num_components == 2:
+                    merged_info['components'] = ["Case", "1 earbud"]
+                elif num_components == 3:
+                    merged_info['components'] = ["Case", "Left earbud", "Right earbud"]
+                else:
+                    merged_info['components'] = [f"{num_components} components"]
+                merged_info['components_count'] = num_components
+            
+            merged[dev_id] = merged_info
     
     return merged
 

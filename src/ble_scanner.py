@@ -64,11 +64,10 @@ class BLEScanner:
         # Add transaction to SQLite DB
         import json
         timestamp = device_info['last_seen']
-        # Serialize device_info as JSON for the 'data' field
         self.transaction_db.add_transaction(
             str(timestamp),
             dev_id,
-            json.dumps(device_info)
+            device_info
         )
     
     async def start_scanning(self):
@@ -119,12 +118,15 @@ class BLEScanner:
                 
                 if self.should_display_update():
                     display_devices(self.device_manager)
-                    # Add scan report to database with merged device count
+                    # Add scan report to database with both counts
+                    active_devices = self.device_manager.get_active_devices()
+                    unmerged_count = len(active_devices)
                     merged_devices = merge_related_devices(self.device_manager)
-                    device_count = len(merged_devices)
+                    merged_count = len(merged_devices)
                     self.transaction_db.add_scan_report(
                         scan_timestamp=self.device_manager.now(),
-                        device_count=device_count
+                        device_count=unmerged_count,
+                        merged_device_count=merged_count
                     )
                     
         except KeyboardInterrupt:

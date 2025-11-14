@@ -40,22 +40,37 @@ class TransactionDB:
             )
             self.conn.commit()
 
-    def add_transaction(self, timestamp, device_id, data):
+    def add_transaction(self, timestamp, device_id, device_info):
+        """Add a transaction with device information.
+        
+        Args:
+            timestamp: ISO 8601 formatted timestamp
+            device_id: Device MAC address
+            device_info: Dictionary containing device information
+        """
         if self.session_id is None:
             raise RuntimeError("No active session. Call create_session() first.")
+        
+        import json
         self.cursor.execute(
             'INSERT INTO transactions (session_id, timestamp, device_id, data) VALUES (?, ?, ?, ?)',
-            (self.session_id, timestamp, device_id, data)
+            (self.session_id, timestamp, device_id, json.dumps(device_info))
         )
         self.conn.commit()
 
-    def add_scan_report(self, scan_timestamp, device_count):
-        """Add a scan report with the number of devices detected"""
+    def add_scan_report(self, scan_timestamp, device_count, merged_device_count):
+        """Add a scan report with device counts
+        
+        Args:
+            scan_timestamp: Timestamp of the scan
+            device_count: Total number of active signals (unmerged)
+            merged_device_count: Number of merged/logical devices
+        """
         if self.session_id is None:
             raise RuntimeError("No active session. Call create_session() first.")
         self.cursor.execute(
-            'INSERT INTO report (session_id, scan_timestamp, device_count) VALUES (?, ?, ?)',
-            (self.session_id, scan_timestamp, device_count)
+            'INSERT INTO report (session_id, scan_timestamp, device_count, merged_device_count) VALUES (?, ?, ?, ?)',
+            (self.session_id, scan_timestamp, device_count, merged_device_count)
         )
         self.conn.commit()
 
