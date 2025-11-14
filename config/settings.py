@@ -4,7 +4,7 @@ Configuration settings for the BLE sniffer application.
 
 # Scanning Configuration
 WINDOW_SEC = 10                     # fenêtre glissante en secondes pour compter "présents"
-PRINT_INTERVAL = 2                  # intervalle d'affichage en secondes
+PRINT_INTERVAL = 5                  # intervalle d'affichage en secondes (default: 5 seconds)
 MIN_SAMPLES_PER_DEVICE = 1          # nombre minimum de détections d'un device dans la fenêtre pour le compter
 
 # Coverage Distance Ranges (RSSI thresholds in dBm)
@@ -18,7 +18,7 @@ COVERAGE_RANGES = {
 }
 
 # Runtime Configuration (set via command-line arguments)
-RSSI_THRESHOLD = -60  # Default to 10m range, overridden by --coverage
+RSSI_THRESHOLD = -80  # Default to 10m range, overridden by --coverage
 DEBUG_MODE = False                        # Overridden by --debug flag
 
 # BLE Manufacturer IDs

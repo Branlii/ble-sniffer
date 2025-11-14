@@ -47,41 +47,6 @@ def analyze_services(service_uuids):
     return ", ".join(services)
 
 
-def identify_device_type(device_name, manufacturer, services):
-    """
-    Identify device type based on name, manufacturer, and services.
-    
-    Args:
-        device_name: Device name from BLE advertisement
-        manufacturer: Manufacturer name
-        services: Services string from analyze_services
-        
-    Returns:
-        str: Device type description
-    """
-    if manufacturer == "Apple":
-        if "AirPods" in device_name:
-            return "Apple AirPods"
-        elif device_name == "Unknown Device":
-            if "Apple Continuity" in services or "Apple Nearby" in services:
-                return "Apple Background Service"
-            else:
-                return "Apple Device (Hidden)"
-        elif "iPhone" in device_name or "iPad" in device_name:
-            return f"Apple {device_name}"
-        else:
-            return f"Apple Device ({device_name})"
-    
-    elif manufacturer == "Samsung":
-        return f"Samsung Device ({device_name})"
-    
-    elif manufacturer == "Google":
-        return f"Google Device ({device_name})"
-    
-    else:
-        return f"{manufacturer} Device ({device_name})"
-
-
 def get_signal_quality(rssi):
     """
     Get signal quality description based on RSSI value.

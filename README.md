@@ -45,8 +45,8 @@ Edit `config/settings.py` to customize the scanner behavior:
 ```python
 # Scanning Configuration
 WINDOW_SEC = 10                     # Time window for device presence (seconds)
-PRINT_INTERVAL = 2                  # Display update interval (seconds)
-RSSI_THRESHOLD = -40                # Minimum signal strength (dBm)
+PRINT_INTERVAL = 5                  # Display update interval (seconds) - default
+RSSI_THRESHOLD = -80                # Minimum signal strength (dBm) - default for 10m coverage
 MIN_SAMPLES_PER_DEVICE = 1          # Minimum detections to count device
 
 # Display Configuration
@@ -131,25 +131,77 @@ ble-sniffer/
 
 ## 🔧 Usage Examples
 
+### Command-Line Arguments
+
+```bash
+python3 main.py [OPTIONS]
+```
+
+**Available options:**
+
+- `--coverage {1m,5m,10m,20m,50m}` - Set detection range (default: 10m)
+  - `1m` : RSSI threshold -60 dBm (very close) 
+  - `5m` : RSSI threshold -70 dBm (close range)
+  - `10m` : RSSI threshold -80 dBm (medium range) - **DEFAULT**
+  - `20m` : RSSI threshold -90 dBm (far range)
+  - `50m` : RSSI threshold -100 dBm (very far range)
+
+- `--debug` - Enable debug mode (show all BLE signals separately)
+
+- `--interval SECONDS` - Set display update interval in seconds (default: 5 seconds)
+
 ### Basic Monitoring
 ```bash
 python3 main.py
 ```
 
-### Enable Debug Mode
-1. Edit `config/settings.py`:
-   ```python
-   DEBUG_MODE = True
-   ```
-2. Run the scanner to see all individual BLE signals
+### Set Coverage Range
+```bash
+# Detect devices up to 5 meters away
+python3 main.py --coverage 5m
 
-### Adjust Detection Range
-1. Edit `config/settings.py`:
-   ```python
-   RSSI_THRESHOLD = -30  # Only very close devices (1 meter)
-   # or
-   RSSI_THRESHOLD = -70  # Wider range (10+ meters)
-   ```
+# Detect devices up to 10 meters away
+python3 main.py --coverage 10m
+
+# Detect devices very far away (50m)
+python3 main.py --coverage 50m
+```
+
+### Enable Debug Mode
+```bash
+# Show all individual BLE signals
+python3 main.py --debug
+
+# Combine with coverage range
+python3 main.py --coverage 10m --debug
+```
+
+### Set Display Interval
+```bash
+# Update display every 1 second
+python3 main.py --interval 1
+
+# Update display every 5 seconds
+python3 main.py --interval 5
+
+# Update display every 0.5 seconds
+python3 main.py --interval 0.5
+
+# Combine with other options
+python3 main.py --coverage 10m --interval 1 --debug
+```
+
+### Configuration File
+For permanent settings, edit `config/settings.py`:
+```python
+RSSI_THRESHOLD = -60  # Only very close devices (1 meter)
+# or
+RSSI_THRESHOLD = -80  # Medium range (10 meters) - default
+# or
+RSSI_THRESHOLD = -100 # Very far range (50 meters)
+DEBUG_MODE = True     # Show all signals instead of merging
+PRINT_INTERVAL = 5    # Update every 5 seconds (default)
+```
 
 ## 🎯 Use Cases
 

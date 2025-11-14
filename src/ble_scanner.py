@@ -4,21 +4,27 @@ Main BLE scanner class with detection logic.
 
 import asyncio
 import time
+import signal
 from bleak import BleakScanner
 
 from config.settings import RSSI_THRESHOLD, PRINT_INTERVAL
 from models.device_manager import DeviceManager
 from utils.ble_analyzer import get_manufacturer_name, analyze_services
-from utils.display import display_devices
+from utils.display import display_devices, merge_related_devices
 
 
 class BLEScanner:
     """Main BLE scanner class that coordinates device detection and display."""
     
-    def __init__(self):
+    def __init__(self, print_interval=None):
         self.device_manager = DeviceManager()
         self.scanner = None
         self.last_print = 0
+        # Use provided interval or fall back to config setting
+        self.print_interval = print_interval if print_interval is not None else PRINT_INTERVAL
+        # Import and initialize the transaction DB
+        from utils.transaction_db import TransactionDB
+        self.transaction_db = TransactionDB()
     
     def detection_callback(self, device, advertisement_data):
         """
@@ -54,6 +60,16 @@ class BLEScanner:
         
         # Add sighting to device manager
         self.device_manager.add_sighting(dev_id, device_info)
+
+        # Add transaction to SQLite DB
+        import json
+        timestamp = device_info['last_seen']
+        # Serialize device_info as JSON for the 'data' field
+        self.transaction_db.add_transaction(
+            str(timestamp),
+            dev_id,
+            json.dumps(device_info)
+        )
     
     async def start_scanning(self):
         """Start the BLE scanning process."""
@@ -66,11 +82,13 @@ class BLEScanner:
         if self.scanner:
             await self.scanner.stop()
             print("🛑 Scan BLE arrêté")
+        # Close the transaction DB connection
+        self.transaction_db.close()
     
     def should_display_update(self):
         """Check if it's time to display an update."""
         current_time = time.time()
-        if current_time - self.last_print >= PRINT_INTERVAL:
+        if current_time - self.last_print >= self.print_interval:
             self.last_print = current_time
             return True
         return False
@@ -80,6 +98,19 @@ class BLEScanner:
         Main run loop for the BLE scanner.
         Starts scanning and displays periodic updates.
         """
+        # Set up signal handlers for graceful shutdown
+        loop = asyncio.get_event_loop()
+        
+        def signal_handler():
+            print("\n⏹️  Signal received - shutting down gracefully...")
+            # Cancel the main task to trigger exception
+            for task in asyncio.all_tasks(loop):
+                task.cancel()
+        
+        # Handle SIGINT (Ctrl+C) and SIGTERM
+        loop.add_signal_handler(signal.SIGINT, signal_handler)
+        loop.add_signal_handler(signal.SIGTERM, signal_handler)
+        
         await self.start_scanning()
         
         try:
@@ -88,9 +119,18 @@ class BLEScanner:
                 
                 if self.should_display_update():
                     display_devices(self.device_manager)
+                    # Add scan report to database with merged device count
+                    merged_devices = merge_related_devices(self.device_manager)
+                    device_count = len(merged_devices)
+                    self.transaction_db.add_scan_report(
+                        scan_timestamp=self.device_manager.now(),
+                        device_count=device_count
+                    )
                     
         except KeyboardInterrupt:
             print("\n⏹️  Arrêt demandé par l'utilisateur")
+        except asyncio.CancelledError:
+            print("\n⏹️  Arrêt en cours...")
         finally:
             await self.stop_scanning()
     

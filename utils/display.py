@@ -4,7 +4,7 @@ Display utilities for BLE sniffer output and device merging logic.
 
 import time
 from config import settings
-from config.settings import WINDOW_SEC, MIN_SAMPLES_PER_DEVICE
+from config.settings import WINDOW_SEC
 from utils.ble_analyzer import get_signal_quality
 
 
@@ -30,18 +30,20 @@ def merge_related_devices(device_manager):
     for dev_id, info in active_devices.items():
         # Identifier les iPhones et services associés
         if info['manufacturer'] == 'Apple':
-            if info['name'] != 'Unknown Device' and 'iPhone' not in info['name'] and 'AirPods' not in info['name']:
-                # iPhone avec nom personnalisé
-                iphone_devices.append((dev_id, info))
-            elif info['name'] == 'Unknown Device':
-                # Service iPhone anonyme
-                iphone_devices.append((dev_id, info))
-            elif 'AirPods' in info['name']:
+            # Check for AirPods (case-insensitive)
+            device_name_lower = info['name'].lower()
+            if 'airpod' in device_name_lower or 'beats' in device_name_lower:
                 # Grouper les AirPods par nom
                 airpods_name = info['name']
                 if airpods_name not in airpods_groups:
                     airpods_groups[airpods_name] = []
                 airpods_groups[airpods_name].append((dev_id, info))
+            elif info['name'] != 'Unknown Device' and 'iPhone' not in info['name']:
+                # iPhone avec nom personnalisé
+                iphone_devices.append((dev_id, info))
+            elif info['name'] == 'Unknown Device':
+                # Service iPhone anonyme
+                iphone_devices.append((dev_id, info))
             else:
                 # Autre appareil Apple
                 merged[dev_id] = info
